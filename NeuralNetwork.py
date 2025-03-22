@@ -9,10 +9,13 @@ class NeuralNetwork:
 
         self.weights = []
         self.biases = []
-
+        self.movement_weights = []
+        self.movement_biases = []
         for i in range(self.num_layers - 1):
             self.weights.append((np.random.randn(layer_sizes[i], layer_sizes[i+1])) * np.sqrt(1. / layer_sizes[i]))
+            self.movement_weights.append(np.zeros((layer_sizes[i], layer_sizes[i+1])))
             self.biases.append(np.zeros((1, layer_sizes[i+1])))
+            self.movement_biases.append(np.zeros((1, layer_sizes[i+1])))
 
     
     def relu(self, x):
@@ -57,10 +60,18 @@ class NeuralNetwork:
             
         return grad_weights, grad_biases
 
-    def update_parameter(self, grad_weights, grad_biases):
-        for i in range(self.num_layers - 1):
-            self.weights[i] -= self.learning_rate * grad_weights[i]
-            self.biases[i] -= self.learning_rate * grad_biases[i]
+    def update_parameter(self, grad_weights, grad_biases, method):
+        if method == "Gradient":
+            for i in range(self.num_layers - 1):
+                self.weights[i] -= self.learning_rate * grad_weights[i]
+                self.biases[i] -= self.learning_rate * grad_biases[i]
+        elif method == "Gradient + Momentum":
+            for i in range(self.num_layers - 1):
+                self.movement_weights[i] = self.movement_weights[i] * 0.9 - self.learning_rate * grad_weights[i]
+                self.weights[i] += self.movement_weights[i]
+                self.movement_biases[i] = self.movement_biases[i] * 0.9 - self.learning_rate * grad_biases[i]
+                self.biases[i] +=  self.movement_biases[i]
+
 
     def train(self, X_train, y_train, method, epochs=100):
         if method == "SGD":
@@ -75,7 +86,7 @@ class NeuralNetwork:
                     total_loss += loss
                 
                     grad_w, grad_b = self.backward(y, y_pred)  # Backward pass
-                    self.update_parameter(grad_w, grad_b)
+                    self.update_parameter(grad_w, grad_b, "Gradient + Momentum")
 
                 if (epoch + 1) % 10 == 0:
                     print(f"Epoch {epoch+1}, Loss: {total_loss[0][0]:.4f}")
